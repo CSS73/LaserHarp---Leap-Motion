@@ -14,7 +14,8 @@
 				height: 100%;
 			}
 			#can{
-				background-color: #000000;
+				/* background-color: #000000; */
+				background-image: url(background.jpg);
 			}
 		</style>
 	</head>
@@ -68,7 +69,13 @@
 				ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 				updateHarp( frame );
-				drawHarp();
+
+				var img = new Image();   // Crée un nouvel objet Image
+				img.src = 'background.jpg'; // Définit le chemin vers sa source
+				img.onload = function(){
+					ctx.drawImage(img, 0, 0);
+					drawHarp();
+				}
 			});
 
 			// Having the screen dimension
@@ -101,7 +108,7 @@
 			function initApp( callback ) {
 				// Créer les objets "ligne"
 				var lineObj;
-				for (var i = 0, c = yPositions.length; i < c; i++) {
+				for (var i = 0, c = xPositions.length; i < c; i++) {
 					lineObj = {
 						x : xPositions[i],
 						y : 0,
