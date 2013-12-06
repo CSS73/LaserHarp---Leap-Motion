@@ -79,7 +79,7 @@
 			var distance = widthScreen / 7;
 
 			var lines = [];
-			var yPositions = [
+			var xPositions = [
 				centerWidth-distance*3,
 				centerWidth-distance*2,
 				centerWidth-distance,
@@ -103,7 +103,7 @@
 				var lineObj;
 				for (var i = 0, c = yPositions.length; i < c; i++) {
 					lineObj = {
-						x : yPositions[i],
+						x : xPositions[i],
 						y : 0,
 						angle : 0,
 						color : 'green',
