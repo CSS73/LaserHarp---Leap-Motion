@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Laser Harp - Leap Motion</title>
+
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<script src="http://js.leapmotion.com/0.2.0/leap.min.js"></script>
+
+		<link rel="stylesheet" href="http://meyerweb.com/eric/tools/css/reset/reset.css">
+		<style>
+			#can{
+				width: 100%;
+				height: 100%;
+			}
+			#can{
+				background-color: #000000;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="can"></canvas>
+		<audio id="01" preload="auto">
+			<source src="audio/01.mp3"></source>
+		</audio>
+		<audio id="02" preload="auto">
+			<source src="audio/02.mp3"></source>
+		</audio>
+		<audio id="03" preload="auto">
+			<source src="audio/03.mp3"></source>
+		</audio>
+		<audio id="04" preload="auto">
+			<source src="audio/04.mp3"></source>
+		</audio>
+		<audio id="05" preload="auto">
+			<source src="audio/05.mp3"></source>
+		</audio>
+		<audio id="06" preload="auto">
+			<source src="audio/06.mp3"></source>
+		</audio>
+		<audio id="07" preload="auto">
+			<source src="audio/07.mp3"></source>
+		</audio>
+
+		<script>
+			// Initialize canvas
+			var canvas = document.getElementById('can');
+			var ctx = canvas.getContext('2d');
+
+			// Initialize Leap Motion
+			var controller = new Leap.Controller();
+
+			controller.on( 'connect' , function(){
+				console.log( 'Successfully connected.' );
+			});
+
+			controller.on( 'deviceConnected' , function() {
+				console.log( 'A Leap device has been connected.' );
+			});
+
+			controller.on( 'deviceDisconnected' , function() {
+				console.log( 'A Leap device has been disconnected.' );
+			});
+
+			controller.on( 'animationFrame' , function(frame) {
+				// ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.fillStyle = 'rgba(0, 0, 0, .2)';
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+				updateHarp( frame );
+				drawHarp();
+			});
+
+			// Having the screen dimension
+			var widthScreen = $(window).width();
+			var heightScreen = $(window).height();
+
+			var centerWidth = widthScreen / 2;
+			var distance = widthScreen / 7;
+
+			var lines = [];
+			var yPositions = [
+				centerWidth-distance*3,
+				centerWidth-distance*2,
+				centerWidth-distance,
+				centerWidth,
+				centerWidth+distance,
+				centerWidth+distance*2,
+				centerWidth+distance*3
+			];
+			var song = [
+				'#01',
+				'#02',
+				'#03',
+				'#04',
+				'#05',
+				'#06',
+				'#07'
+			];
+
+			function initApp( callback ) {
+				// Créer les objets "ligne"
+				var lineObj;
+				for (var i = 0, c = yPositions.length; i < c; i++) {
+					lineObj = {
+						x : yPositions[i],
+						y : 0,
+						angle : 0,
+						color : 'green',
+						song : song[i]
+					};
+					lineObj.angle = getAngle(lineObj.y, lineObj.x);
+					lines.push( lineObj );
+				}
+				if (typeof callback === 'function')
+					callback();
+			}
+
+			function updateHarp( frame )
+			{
+				// Je parcours toutes mes mains
+				for(var i = 0, c = frame.hands.length; i < c; i++){
+					var hand = frame.hands[i];
+					// Je parcours tout mes doigts
+					for (var j = 0, d = hand.fingers.length; j < d; j++) {
+						var finger = hand.fingers[0];
+
+						var pos = leapToScene( frame, finger.stabilizedTipPosition );
+						var x = pos.x;
+						var y = pos.y-frame.interactionBox.center[1]*.5;
+
+						ctx.fillStyle = 'white';
+						ctx.shadowBlur = 15;
+						ctx.shadowColor = 'white';
+						ctx.fillRect(x, y, 30, 30);
+
+						ctx.shadowBlur = 0;
+
+						var angleA = getAngle(y, x);		// A = top-left
+						var angleB = getAngle(y, x+30);		// B = top-right
+						var angleC = getAngle(y+30, x+30);	// C = bottom-right
+						var angleD = getAngle(y+30, x);		// D = bottom-left
+
+						if( angleA <= 90 ){
+							for (var i = 0; i < lines.length; i++) {
+								var l = lines[i];
+
+								var audio = $(l.song)[0];
+
+								if( angleB >= l.angle && l.angle >= angleD ){
+									l.color = 'blue';
+									audio.play();
+								} else {
+									l.color = 'green';
+									/*audio.pause();
+									audio.currentTime = 0;*/
+								}
+							};
+						}else{
+							for (var i = 0; i < lines.length; i++) {
+								var l = lines[i];
+
+								var audio = $(l.song)[0];
+
+								if( angleA <= l.angle && l.angle <= angleC ){
+									l.color = 'blue';
+									audio.play();
+								} else {
+									l.color = 'green';
+									/*audio.pause();
+									audio.currentTime = 0;*/
+								}
+							};
+						}
+					};
+				}
+			}
+
+			function drawLine(xS, yS, xE, yE, color){
+				ctx.beginPath();
+				ctx.strokeStyle = color;
+				ctx.moveTo(xS,yS);
+				ctx.lineTo(xE,yE);
+				ctx.lineWidth = 4;
+				ctx.stroke();
+				ctx.closePath();
+			}
+
+			function roundRect(x, y, w, h, color, radius) {
+				var r = x + w;
+				var b = y + h;
+
+				ctx.beginPath();
+				ctx.moveTo(x+radius, y);
+				ctx.lineTo(r-radius, y);
+				ctx.quadraticCurveTo(r, y, r, y+radius);
+				ctx.lineTo(r, y+h-radius);
+				ctx.quadraticCurveTo(r, b, r-radius, b);
+				ctx.lineTo(x+radius, b);
+				ctx.quadraticCurveTo(x, b, x, b-radius);
+				ctx.lineTo(x, y+radius);
+				ctx.quadraticCurveTo(x, y, x+radius, y);
+				ctx.closePath();
+				ctx.fillStyle = color;
+				ctx.fill();
+				ctx.closePath();
+			}
+
+			function leapToScene( frame, leapPos ){
+
+				var iBox = frame.interactionBox;
+
+				var left = iBox.center[0] - iBox.size[0]/2;
+				var top = iBox.center[1] + iBox.size[1]/2;
+
+				var x = leapPos[0] - left;
+				var y = leapPos[1] - top;
+
+				x /= iBox.size[0];
+				y /= iBox.size[1];
+
+				x *= canvas.width;
+				y *= canvas.height;
+
+				return { x : x, y : -y };
+			}
+
+			function drawHarp(){
+
+				for (var i = 0, c = lines.length; i < c; i++) {
+					var l = lines[i];
+
+					drawLine(centerWidth, heightScreen, l.x, l.y, l.color);
+				}
+
+				roundRect(centerWidth-50, heightScreen-20, 100, 20, '#4C4C4C', 5);
+			}
+
+			function getAngle(y1, x1){
+				return Math.round( Math.atan2((heightScreen - y1), (centerWidth - x1)) / Math.PI * 180);
+			}
+
+			$(document).ready(function($) {
+				$('#can').get(0).width = widthScreen;
+				$('#can').get(0).height = heightScreen;
+			});
+
+			initApp( function() {
+				controller.connect();
+			} );
+
+		</script>
+	</body>
+</html>
