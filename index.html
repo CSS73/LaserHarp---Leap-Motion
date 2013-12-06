@@ -23,24 +23,31 @@
 		<canvas id="can"></canvas>
 		<audio id="01" preload="auto">
 			<source src="audio/01.mp3"></source>
+			<source src="audio/01.ogg"></source>
 		</audio>
 		<audio id="02" preload="auto">
 			<source src="audio/02.mp3"></source>
+			<source src="audio/02.ogg"></source>
 		</audio>
 		<audio id="03" preload="auto">
 			<source src="audio/03.mp3"></source>
+			<source src="audio/03.ogg"></source>
 		</audio>
 		<audio id="04" preload="auto">
 			<source src="audio/04.mp3"></source>
+			<source src="audio/04.ogg"></source>
 		</audio>
 		<audio id="05" preload="auto">
 			<source src="audio/05.mp3"></source>
+			<source src="audio/05.ogg"></source>
 		</audio>
 		<audio id="06" preload="auto">
 			<source src="audio/06.mp3"></source>
+			<source src="audio/06.ogg"></source>
 		</audio>
 		<audio id="07" preload="auto">
 			<source src="audio/07.mp3"></source>
+			<source src="audio/07.ogg"></source>
 		</audio>
 
 		<script>
@@ -56,11 +63,13 @@
 			});
 
 			controller.on( 'deviceConnected' , function() {
+				stateDevice = true;
 				console.log( 'A Leap device has been connected.' );
 			});
 
 			controller.on( 'deviceDisconnected' , function() {
 				console.log( 'A Leap device has been disconnected.' );
+				APPMouse();
 			});
 
 			controller.on( 'animationFrame' , function(frame) {
@@ -74,8 +83,8 @@
 				img.src = 'background.jpg'; // Définit le chemin vers sa source
 				img.onload = function(){
 					ctx.drawImage(img, 0, 0);
-					drawHarp();
 				}
+				drawHarp();
 			});
 
 			// Having the screen dimension
@@ -123,8 +132,7 @@
 					callback();
 			}
 
-			function updateHarp( frame )
-			{
+			function updateHarp( frame ) {
 				// Je parcours toutes mes mains
 				for(var i = 0, c = frame.hands.length; i < c; i++){
 					var hand = frame.hands[i];
@@ -151,7 +159,6 @@
 						if( angleA <= 90 ){
 							for (var i = 0; i < lines.length; i++) {
 								var l = lines[i];
-
 								var audio = $(l.song)[0];
 
 								if( angleB >= l.angle && l.angle >= angleD ){
@@ -166,7 +173,6 @@
 						}else{
 							for (var i = 0; i < lines.length; i++) {
 								var l = lines[i];
-
 								var audio = $(l.song)[0];
 
 								if( angleA <= l.angle && l.angle <= angleC ){
@@ -233,29 +239,90 @@
 			}
 
 			function drawHarp(){
-
 				for (var i = 0, c = lines.length; i < c; i++) {
 					var l = lines[i];
-
 					drawLine(centerWidth, heightScreen, l.x, l.y, l.color);
 				}
-
-				roundRect(centerWidth-50, heightScreen-20, 100, 20, '#4C4C4C', 5);
+				roundRect(centerWidth-50, heightScreen-20, 100, 20, /*'#4C4C4C'*/'#231b1b', 5);
 			}
 
 			function getAngle(y1, x1){
 				return Math.round( Math.atan2((heightScreen - y1), (centerWidth - x1)) / Math.PI * 180);
 			}
 
+			/* Souris */
+			function getMousePos(canvas, evt) {
+				var rect = canvas.getBoundingClientRect();
+				return {
+					x: evt.clientX - rect.left,
+					y: evt.clientY - rect.top
+				};
+			}
+
+			function updateHarpMouse( e ) {
+				var mousePos = getMousePos(can, e);
+				var x = mousePos.x;
+				var y = mousePos.y;
+
+				ctx.fillStyle = 'white';
+				ctx.shadowBlur = 15;
+				ctx.shadowColor = 'white';
+				ctx.fillRect(x-15, y-15, 30, 30);
+				ctx.shadowBlur = 0;
+
+				var angleA = getAngle(y, x);		// A = top-left
+				var angleB = getAngle(y, x+30);		// B = top-right
+				var angleC = getAngle(y+30, x+30);	// C = bottom-right
+				var angleD = getAngle(y+30, x);		// D = bottom-left
+
+				if( angleA <= 90 ){
+					for (var i = 0; i < lines.length; i++) {
+
+						var l = lines[i];
+						var audio = $(l.song)[0];
+
+						if( angleB >= l.angle && l.angle >= angleD ){
+							l.color = 'blue';
+							audio.play();
+						} else {
+							l.color = 'green';
+							audio.pause();
+							audio.currentTime = 0;
+						}
+					};
+				}else{
+					for (var i = 0; i < lines.length; i++) {
+
+						var l = lines[i];
+						var audio = $(l.song)[0];
+
+						if( angleA <= l.angle && l.angle <= angleC ){
+							l.color = 'blue';
+							audio.play();
+						} else {
+							l.color = 'green';
+							audio.pause();
+							audio.currentTime = 0;
+						}
+					};
+				}
+			}
+
+			function APPMouse(){
+				can.addEventListener('mousemove', function(evt) {
+					updateHarpMouse(evt);
+				});
+			}
+
 			$(document).ready(function($) {
 				$('#can').get(0).width = widthScreen;
 				$('#can').get(0).height = heightScreen;
+				APPMouse();
 			});
 
 			initApp( function() {
 				controller.connect();
 			} );
-
 		</script>
 	</body>
 </html>
